@@ -17,7 +17,7 @@ This code implements an automated cross-chain transfer function, specifically fo
 
 ## 3.Key Configuration Parameters
 
-```java
+```jsx
 const fromChainId = 42161 // Arbitrum chain ID
 const toChainId = 8453 // Base chain ID
 const bridgeAsset = 'ETH' // Asset type to bridge
@@ -29,8 +29,8 @@ const bridgeValue = '0.00001' // Amount of asset to bridge each time (ETH)
 
 ### 4.1 getGasPrice Function
 
-```md
-This function is used to get the current gas price of the specified chain.
+```jsx
+//This function is used to get the current gas price of the specified chain.
 const getGasPrice = async (findFromChain) => {
 try {
 // Use RPC call to get current gas price
@@ -61,7 +61,7 @@ The main function is the program's entry point and contains the implementation o
 
 **4.2.1 Getting Chain Information**
 
-```java
+```jsx
 const res = await axios.get(bridgeUrl + '/chaininfo');
 let findFromChain = res.data.data.chain.find(chain => chain.chainID == fromChainId)
 let findAsset = findFromChain.asset.find(asset => bridgeAsset.toLowerCase() == asset.symbol.toLowerCase())
@@ -81,7 +81,7 @@ The program iterates through each account in address.json and performs the follo
 
 **a. Creating Client Instance**
 
-```java
+```jsx
 const client = getClient(account.key, arbitrum, findFromChain.metamask.rpcUrls[0]);
 ```
 
@@ -89,7 +89,7 @@ Creates a client for interacting with the blockchain using the account's private
 
 **b. Getting Gas Price**
 
-```java
+```jsx
 const gasPriceHex = await getGasPrice(findFromChain);
 if (!gasPriceHex) {
 console.error('❌ Could not fetch gas price, skipping...');
@@ -102,7 +102,7 @@ Calls the previously defined getGasPrice function to get the current gas price, 
 
 **c. Amount Calculation and Encoding**
 
-```java
+```jsx
 const originalAmount = parseUnits(bridgeValue, 18);
 const originalAmountStr = originalAmount.toString();
 const finalAmountStr = originalAmountStr.slice(0, -4) + findToChain.id;
@@ -120,7 +120,7 @@ This special amount encoding method is part of the MemeBridge bridging protocol,
 
 **d. Executing Transfer Operation**
 
-```java
+```jsx
 // Check if the asset is ETH or a token
 if (findAsset.contract == '0x0000000000000000000000000000000000000000') {
 // ETH transfer
@@ -147,7 +147,7 @@ Performs different transfer operations based on the asset type:
 
 **e. Recording Results and Querying Transaction Status**
 
-```
+```jsx
 console.log(`✅ Sent from ${account.key} | Tx Hash: ${hash} | Value: ${finalAmount.toString()}`);
 let status = await axios.get(`${bridgeUrl}/txinfo`, {
   params: { chainid: findFromChain.chainID, tx: hash }
