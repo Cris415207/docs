@@ -7,20 +7,12 @@
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/Profile.png",
   "navigation": {
     "tabs": [
       {
         "tab": "Documentation",
         "groups": [
-          {
-            "group": "Get Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
           {
             "group": "Introduction",
             "pages": [
