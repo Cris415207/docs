@@ -1,0 +1,161 @@
+---
+title: "Operating steps"
+icon: "code"
+---
+
+## **1.Functionality Overview**
+
+This code implements an automated cross-chain transfer function, specifically for bridging ETH or other tokens from Arbitrum chain to Base chain. The program reads a file containing multiple account information (address.json), iterates through each account, and performs the bridging operation. The code uses the MemeBridge bridging service API to obtain chain information and process cross-chain transactions.
+
+## **2.Environment Dependencies**
+
+- **axios**: HTTP client library used for sending API requests
+- **viem**: Modern Ethereum development library providing chain definitions, unit conversions, etc.
+- **getClient**: Custom function used to create client instances for blockchain interaction
+- **address.json**: JSON file containing account information, each account should include a private key
+- **tokenAbi**: ERC20 token standard ABI interface definition
+
+## 3.Key Configuration Parameters
+
+```java
+const fromChainId = 42161 // Arbitrum chain ID
+const toChainId = 8453 // Base chain ID
+const bridgeAsset = 'ETH' // Asset type to bridge
+const bridgeUrl = "https://api.memebridge.app/api/v1" // Bridging service API address
+const bridgeValue = '0.00001' // Amount of asset to bridge each time (ETH)
+```
+
+## 4.Detailed Analysis of Main Functions
+
+### 4.1 getGasPrice Function
+
+```md
+This function is used to get the current gas price of the specified chain.
+const getGasPrice = async (findFromChain) => {
+try {
+// Use RPC call to get current gas price
+const response = await axios.post(findFromChain.metamask.rpcUrls[0], {
+jsonrpc: "2.0",
+id: 1,
+method: "eth_gasPrice",
+params: [],
+});
+return response.data.result; // Return gas price in hexadecimal format
+} catch (err) {
+console.error('❌ Failed to fetch gas price:', err);
+return null;
+}
+};
+```
+
+Function explanation:
+
+- Receives the source chain information object as a parameter
+- Uses the chain's RPC URL to send a JSON-RPC request, calling the eth_gasPrice method
+- Returns the gas price in hexadecimal format, or null if the request fails
+- Includes error handling logic to ensure that the entire program won't crash even if getting the gas price fails
+
+### **4.2 main Function**
+
+The main function is the program's entry point and contains the implementation of the entire bridging process.
+
+**4.2.1 Getting Chain Information**
+
+```java
+const res = await axios.get(bridgeUrl + '/chaininfo');
+let findFromChain = res.data.data.chain.find(chain => chain.chainID == fromChainId)
+let findAsset = findFromChain.asset.find(asset => bridgeAsset.toLowerCase() == asset.symbol.toLowerCase())
+let findToChain = res.data.data.chain.find(chain => chain.chainID == toChainId)
+```
+
+This part of the code:
+
+- Gets information about all supported chains and assets from the bridging API
+- Finds detailed information about the source chain based on the configured fromChainId
+- Finds the target asset information in the list of assets supported by the source chain, based on the bridgeAsset parameter
+- Finds detailed information about the target chain based on toChainId
+
+**4.2.2 Account Iteration and Bridging Execution**
+
+The program iterates through each account in address.json and performs the following steps for each account:
+
+**a. Creating Client Instance**
+
+```java
+const client = getClient(account.key, arbitrum, findFromChain.metamask.rpcUrls[0]);
+```
+
+Creates a client for interacting with the blockchain using the account's private key, chain definition, and RPC URL
+
+**b. Getting Gas Price**
+
+```java
+const gasPriceHex = await getGasPrice(findFromChain);
+if (!gasPriceHex) {
+console.error('❌ Could not fetch gas price, skipping...');
+continue;
+}
+const gasPrice = parseInt(gasPriceHex, 16);
+```
+
+Calls the previously defined getGasPrice function to get the current gas price, skips the current account if retrieval fails
+
+**c. Amount Calculation and Encoding**
+
+```java
+const originalAmount = parseUnits(bridgeValue, 18);
+const originalAmountStr = originalAmount.toString();
+const finalAmountStr = originalAmountStr.slice(0, -4) + findToChain.id;
+const finalAmount = BigInt(finalAmountStr);
+```
+
+This is a key step, explained in detail below:
+
+- First, converts bridgeValue to wei units (multiplied by 10^18)
+- Converts the result to a string
+- Removes the last 4 digits from the string and appends the target chain ID to the end
+- Converts the modified string back to BigInt type
+
+This special amount encoding method is part of the MemeBridge bridging protocol, which embeds the target chain ID into the transfer amount to indicate where the funds should be forwarded. For example, if the original amount is 0.00001 ETH and the target chain ID is 8453, the final amount will contain the target chain ID as the last few digits.
+
+**d. Executing Transfer Operation**
+
+```java
+// Check if the asset is ETH or a token
+if (findAsset.contract == '0x0000000000000000000000000000000000000000') {
+// ETH transfer
+hash = await client.sendTransaction({
+to: findFromChain.manager,
+value: finalAmount,
+gasPrice: BigInt(gasPrice),
+});
+} else {
+// Token transfer
+hash = await client.writeContract({
+address: findAsset.contract,
+abi: tokenAbi,
+functionName: 'transfer',
+args: [findFromChain.manager, finalAmount],
+});
+}
+```
+
+Performs different transfer operations based on the asset type:
+
+- **Native ETH transfer**: If the contract address is 0x0 address, it indicates native ETH. Uses the sendTransaction method to send ETH to the bridge's management contract address
+- **Token transfer**: If there is a contract address, it indicates an ERC20 token. Uses the writeContract method to call the token contract's transfer function, transferring tokens to the bridge's management contract
+
+**e. Recording Results and Querying Transaction Status**
+
+```
+console.log(`✅ Sent from ${account.key} | Tx Hash: ${hash} | Value: ${finalAmount.toString()}`);
+let status = await axios.get(`${bridgeUrl}/txinfo`, {
+  params: { chainid: findFromChain.chainID, tx: hash }
+});
+```
+
+After the transaction is sent:
+
+- Records transaction details to the console, including account, transaction hash, and amount
+- Calls the bridge API's txinfo interface to query transaction status
+- Note: The code obtains the status but does not process it, which is an area that could be optimized

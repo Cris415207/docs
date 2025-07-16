@@ -1,0 +1,125 @@
+---
+title: "Overall code"
+icon: "text-size"
+---
+
+
+```md
+
+import axios from "axios";
+import {    } from "../config";
+import data from '../address.json';
+import { arbitrum, gravity } from 'viem/chains';
+import { parseUnits } from 'viem';
+import tokenAbi from './abi/token.json'
+​
+​
+const fromChainId = 42161  // arbitrum
+const toChainId = 8453    // base
+const bridgeAsset = 'ETH' // The asset to bridge, e.g., 'ETH' or 'BNB'
+const bridgeUrl = "https://api.memebridge.app/api/v1"; // Replace with your bridge URL
+const bridgeValue = '0.00001'; // 0.00001 ETH
+​
+​
+const getGasPrice = async (findFromChain) => {
+  try {
+    const response = await axios.post(findFromChain.metamask.rpcUrls[0], {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_gasPrice",
+      params: [],
+    });
+    return response.data.result;
+  } catch (err) {
+    console.error('❌ Failed to fetch gas price:', err);
+    return null;
+  }
+};
+​
+const main = async () => {
+  try {
+    const res = await axios.get(bridgeUrl + '/chaininfo');
+    let findFromChain = res.data.data.chain.find(chain => chain.chainID == fromChainId)
+    let findAsset = findFromChain.asset.find(asset => bridgeAsset.toLowerCase() == asset.symbol.toLowerCase())
+    let findToChain = res.data.data.chain.find(chain => chain.chainID == toChainId)
+​
+    for (const account of data) {
+      try {
+        const client = getClient(account.key, arbitrum, findFromChain.metamask.rpcUrls[0]);
+​
+        const gasPriceHex = await getGasPrice(findFromChain);
+        if (!gasPriceHex) {
+          console.error('❌ Could not fetch gas price, skipping...');
+          continue;
+        }
+​
+        const gasPrice = parseInt(gasPriceHex, 16);
+​
+        const originalAmount = parseUnits(bridgeValue, 18);
+​
+        const originalAmountStr = originalAmount.toString();
+        const finalAmountStr = originalAmountStr.slice(0, -4) + findToChain.id;
+        const finalAmount = BigInt(finalAmountStr);
+        let hash
+        // Check if the asset is ETH or a token
+        if (findAsset.contract == '0x0000000000000000000000000000000000000000') {
+          hash = await client.sendTransaction({
+            to: findFromChain.manager,
+            value: finalAmount,
+            gasPrice: BigInt(gasPrice),
+          });
+        }
+        // If it's a token, use the transfer function
+        else {
+          hash = await client.writeContract({
+            address: findAsset.contract,
+            abi: tokenAbi,
+            functionName: 'transfer',
+            args: [findFromChain.manager, finalAmount],
+          });
+        }
+​
+        console.log(`✅ Sent from ${account.key} | Tx Hash: ${hash} | Value: ${finalAmount.toString()}`);
+        let status = await axios.get(`${bridgeUrl}/txinfo`, {
+          params: { chainid: findFromChain.chainID, tx: hash }
+        });
+​
+      } catch (err) {
+        console.error(`❌ Failed to send from ${account.key}`, err);
+      }
+    }
+  } catch (err) {
+    console.error('❌ Failed to fetch chain info:', err);
+  }
+};
+main();
+​
+config.ts
+​
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+​
+const bridgeUrl = "https://api.memebridge.app/api/v1";
+const gasUrl = "https://gas.memebridge.app/api/v1";
+​
+const getClient = (privateKey: string, chain: any, rpcUrl: string) => {
+    const account = privateKeyToAccount(`0x${privateKey}`);
+    return createWalletClient({
+        account,
+        chain,
+        transport: http(rpcUrl),  // transport must be http(rpcUrl)
+    });
+};
+​
+export {
+    bridgeUrl,
+    gasUrl,
+    getClient,
+};
+​
+adress.json
+​
+[
+  { "add": "" ,"key":""}
+]
+```
