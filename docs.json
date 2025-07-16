@@ -92,8 +92,8 @@
     }
   },
   "logo": {
-    "light": "/logo/meme_light.svg",
-    "dark": "/logo/meme_dark.svg"
+    "light": "/logo/meme_dark.svg",
+    "dark": "/logo/meme_light.svg"
   },
   "navbar": {
     "links": [
