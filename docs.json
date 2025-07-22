@@ -41,6 +41,12 @@
             ]
           },
           {
+            "group": "FAQ",
+            "pages": [
+              "Faq/Faq"
+            ]
+          },
+          {
             "group": "Brand Kit",
             "pages": [
               "BrandKit/Horizontal",
