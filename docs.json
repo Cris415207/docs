@@ -7,7 +7,7 @@
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/meme_logo_light.svg",
+  "favicon": "/logo//favicon.ico",
   "navigation": {
     "tabs": [
       {
@@ -30,7 +30,9 @@
               "Function/Gasrecharge",
               "Function/MintNFT",
               "Function/Faucet",
-              "Function/Deploy"
+              "Function/Deploy",
+              "Function/Ecosystem",
+              "Function/Web3Tools"
             ]
           },
           {
@@ -66,12 +68,8 @@
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "Endpoint",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
             ]
           }
         ]
@@ -80,19 +78,14 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://www.memebridge.xyz",
-          "icon": "book-open-cover"
+          "anchor": "Twitter",
+          "href": "https://x.com/MemebridgeB",
+          "icon": "twitter"
         },
         {
           "anchor": "Community",
           "href": "https://t.me/memebridge",
           "icon": "telegram"
-        },
-        {
-          "anchor": "Twitter",
-          "href": "https://x.com/MemebridgeB",
-          "icon": "twitter"
         }
       ]
     }
